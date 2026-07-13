@@ -19,6 +19,11 @@
             from { opacity: 0; transform: translateY(-5px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
     </style>
 </head>
 <body class="text-gray-800 antialiased min-h-screen flex flex-col">
@@ -34,7 +39,13 @@
         <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
             
             <div class="mb-8 bg-amber-50 border border-amber-200 p-5 rounded-xl shadow-sm">
-                <h3 class="text-sm font-bold text-amber-900 mb-2">📚 참고자료</h3>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
+                    <h3 class="text-sm font-bold text-amber-900">📚 참고자료</h3>
+                    <button type="button" onclick="openGuideModal()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition flex items-center gap-2 shadow-sm whitespace-nowrap">
+                        📖 사용 가이드
+                    </button>
+                </div>
+                
                 <ul class="text-xs text-amber-800 space-y-1.5 mb-4 list-disc list-inside pl-1">
                     <li>2026학년도 학생생활기록부 기재요령 반영</li>
                     <li>NEW 학생부종합전형 공통 평가요소 및 평가항목 내용 반영(2021년 건국대, 경희대, 연세대, 중앙대, 한국외대 공동연구 자료)</li>
@@ -62,9 +73,7 @@
                         <option value="진로활동">진로활동</option>
                         <option value="봉사활동">봉사활동</option>
                     </select>
-                    <div id="category-guideline" class="text-sm text-blue-800 bg-white p-3 rounded-lg border border-blue-100 leading-relaxed">
-                        <!-- JS로 동적 변경되는 가이드라인 -->
-                    </div>
+                    <div id="category-guideline" class="text-sm text-blue-800 bg-white p-3 rounded-lg border border-blue-100 leading-relaxed"></div>
                 </div>
 
                 <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,7 +107,7 @@
                 <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">🎯 학종 4대 평가 요소 (선택)</h2>
                 <p class="text-sm text-gray-500 mb-4">질문(가이드)을 참고하여, 학생이 보인 역량에 해당하는 <strong>사례 및 교사 총평</strong>을 하나의 글로 작성하세요. <strong>입력한 항목만 선별되어 프롬프트에 반영됩니다.</strong></p>
                 <div id="eval-elements-container" class="space-y-3">
-                    <!-- 동적으로 추가되는 평가 요소들이 여기에 들어갑니다. -->
+                    <!-- 동적으로 추가되는 평가 요소 -->
                 </div>
             </section>
 
@@ -111,9 +120,7 @@
                     </button>
                 </div>
                 <p class="text-sm text-gray-500 mb-4">역할, 읽은 책, 연계 도서 등 추가하고 싶은 내용을 자유롭게 구성하세요.</p>
-                <div id="custom-fields-container" class="space-y-3">
-                    <!-- 동적으로 추가되는 필드들이 여기에 들어갑니다. -->
-                </div>
+                <div id="custom-fields-container" class="space-y-3"></div>
             </section>
 
             <section class="mb-8">
@@ -164,101 +171,213 @@
                     </div>
                 </div>
             </section>
-
         </div>
     </main>
+
+    <div id="verb-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden flex justify-center items-center z-50 p-4 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800">📑 생기부 표현법 사전 (엑셀 데이터 연동)</h3>
+                <button onclick="closeVerbModal()" class="text-gray-400 hover:text-gray-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow text-sm text-gray-700 space-y-6">
+                <p class="bg-indigo-50 text-indigo-800 p-3 rounded-lg border border-indigo-100 leading-relaxed text-xs">
+                    💡 <strong>AI 반영 원리:</strong> 아래 표의 키워드들은 프롬프트 생성 시 AI에게 텍스트 형태로 직접 전달됩니다. 교사가 학생의 활동 등급(A, B, C)을 체크하면, <strong>해당 등급이 포함된 열의 모든 단어들</strong>이 AI의 참고 어휘 리스트로 제공됩니다.
+                </p>
+                
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-2 border-l-4 border-blue-500 pl-2">1. 탁월성 키워드</h4>
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <table class="w-full text-center border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-blue-50 border-b border-gray-200">
+                                    <th class="p-2 font-bold text-blue-900 border-r w-1/2">학업역량 중심 (A등급 전용)</th>
+                                    <th class="p-2 font-bold text-blue-900 w-1/2">학업태도 중심 (A+B+C 공통)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="p-3 border-r align-top text-gray-600 leading-relaxed bg-white">
+                                        창의력, 창의성, 비판적 사고력, 문제해결능력, 종합적 사고력, 대안적 사고, 수렴적 사고, 통합적 사고, 대인관계능력, 의사소통능력, 논리력, 분석력, 폭넓은 해석력, 체화, 대안제시능력, 발표력, 시간관리능력, 합리적인, 이성적인, 리더십, 논리정연함, 균형 잡힌 시각, 추론 및 추측 능력, 분석적 사고, 논리적 사고, 확장적 사고, 확산적 사고, 자기성찰능력, 상상력, 다양한 자료조사, 색다른 관점, 효율적 학습습관
+                                    </td>
+                                    <td class="p-3 align-top text-gray-600 leading-relaxed bg-gray-50">
+                                        적극적, 자기주도적, 협력적, 단점 극복, 친절, 책임감, 꼼꼼함, 신중함, 능동적, 긍정적, 끈기, 인내심, 솔선수범, 윤리의식, 집중력, 희생, 배려, 묵묵히, 진지, 공손, 공감, 고민, 경청, 성숙, 의지력, 스스로 해결, 바람직한, 완벽, 극복, 흐트러짐 없는
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-2 border-l-4 border-green-500 pl-2">2. 활동표현 키워드</h4>
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <table class="w-full text-center border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-green-50 border-b border-gray-200">
+                                    <th class="p-2 font-bold text-green-900 border-r w-1/3">A (A등급 전용)</th>
+                                    <th class="p-2 font-bold text-green-900 border-r w-1/3">A+B (A, B등급 공통)</th>
+                                    <th class="p-2 font-bold text-green-900 w-1/3">A+B+C (A, B, C 공통)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="p-3 border-r align-top text-gray-600 leading-relaxed bg-white">
+                                        탁월함, 뛰어남, 확장함, 성장함, 분석함, 추론함, 토론한, 발휘함, 인상적인, 고찰함, 본보기(모범)가 됨
+                                    </td>
+                                    <td class="p-3 border-r align-top text-gray-600 leading-relaxed bg-gray-50">
+                                        우수함, 풍부함, 제시함, 돋보임, 기여함, 조율함, 이끌어냄, 도모함, 비교함, 발표함, 설명함, 공유함, 분석함, 제언함, 밝힘, 토의함, 도출함
+                                    </td>
+                                    <td class="p-3 align-top text-gray-600 leading-relaxed bg-white">
+                                        하였음, 보였음, 보임, 깨달음, 정리함, 함양함, 좋음, 높음, 강함, 향상됨, 탐구함, 탐색함, 확인함, 신장함, 제출함, 키움, 알게 됨, 받음, 느낌, 진행함, 구축함, 앎, 소개함, 기울임, 기특함, 기여함, 확인함, 배움, 작성함, 학습함, 노력함, 나타냄, 극복함, 엿보임, 기름, 활동함
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 text-right">
+                <button onclick="closeVerbModal()" class="bg-gray-800 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-gray-900 transition shadow-sm">확인 및 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="guide-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden flex justify-center items-center z-50 p-4 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800">📖 프롬프트 메이커 사용 가이드</h3>
+                <button onclick="closeGuideModal()" class="text-gray-400 hover:text-gray-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow text-sm text-gray-800 space-y-8">
+                
+                <section>
+                    <h4 class="text-base font-bold text-gray-900 mb-3 border-l-4 border-blue-500 pl-3">1. 기본 활동 정보</h4>
+                    <ul class="list-disc list-inside space-y-2 ml-3 text-gray-700">
+                        <li><strong>생기부 항목 선택:</strong> 작성하고자 하는 영역을 선택합니다. (교과세특, 행특 등)</li>
+                        <li><strong>대상 과목 혹은 활동명:</strong> 해당 활동의 과목명이나 기본 타이틀을 입력합니다.</li>
+                        <li><strong>희망 진로(선택):</strong> 학생의 진로를 입력하면 진로와 연계된 뉘앙스로 작성하는 데 도움이 됩니다.</li>
+                    </ul>
+                </section>
+                
+                <section>
+                    <h4 class="text-base font-bold text-gray-900 mb-3 border-l-4 border-green-500 pl-3">2. 세부 활동 내용</h4>
+                    <div class="space-y-4 ml-3 text-gray-700">
+                        <p><strong>1) 활동명-수행평가명 입력:</strong> 진행한 구체적인 수행평가 또는 탐구 활동명을 적습니다.</p>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <p class="font-bold text-gray-800 mb-2">2) 성취기준 및 성취수준 작성 (선택)</p>
+                            <ul class="list-disc list-inside space-y-1.5 ml-2 text-gray-600 text-xs sm:text-sm">
+                                <li>성취수준은 <a href="https://stas.moe.go.kr/cmn/main" target="_blank" class="text-blue-600 hover:underline font-semibold">'학생평가지원포털'</a>에서 확인하실 수 있습니다.</li>
+                                <li>성취수준에 따라 생기부 표현법이 자동 반영됩니다. <br><span class="text-gray-500 ml-4">(생기부 표현법이 적용되지 않기를 원하시면 체크 표시를 해제해주세요)</span></li>
+                                <li>표현법은 '에듀진'의 기사 내용을 참고하여 작성되었습니다.</li>
+                            </ul>
+                        </div>
+
+                        <div class="grid gap-3">
+                            <div class="p-3 border border-blue-100 bg-blue-50/50 rounded-lg">
+                                <p class="font-bold text-blue-900 mb-1">3) 상세입력모드</p>
+                                <p class="text-gray-700 text-xs sm:text-sm">수행평가 주제 혹은 탐구 주제가 명확하고 계기/탐구과정/결론/변화에 대한 내용이 상세할 경우 활용하여 입력합니다.</p>
+                            </div>
+                            <div class="p-3 border border-gray-200 bg-white rounded-lg">
+                                <p class="font-bold text-gray-700 mb-1">4) 통합입력모드</p>
+                                <p class="text-gray-600 text-xs sm:text-sm">교사가 세세한 항목 구분 없이 전체적인 관찰 내용과 평가를 한 번에 서술식으로 작성하고 싶을 경우 입력합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-900 mb-3 border-l-4 border-purple-500 pl-3">3. 교사 종합 총평 (선택)</h4>
+                    <p class="ml-3 text-gray-700">세부 활동 외에 학생에 대한 전반적인 태도, 성장 등 <strong>전반적인 종합 평가</strong>를 작성합니다.</p>
+                </section>
+
+                <section>
+                    <h4 class="text-base font-bold text-gray-900 mb-3 border-l-4 border-amber-500 pl-3">4. 학종 4대 평가 요소 (선택)</h4>
+                    <p class="ml-3 text-gray-700 leading-relaxed">
+                        NEW 학생부종합전형 공통 평가요소 및 평가항목 내용이 반영된 세부 요소입니다.<br>
+                        학생이 발휘한 역량에 해당하는 <strong>사례 및 교사 총평</strong>을 글로 작성해주시면 프롬프트에 선별되어 반영됩니다.
+                    </p>
+                </section>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 text-right">
+                <button onclick="closeGuideModal()" class="bg-gray-800 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-gray-900 transition shadow-sm">닫기</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         let customFieldCount = 0;
 
-        const categoryData = {
-            "교과세부능력 및 특기사항": {
-                limit: "500자 이내",
-                guideline: "<strong>[기재 요령]</strong> 과목별 성취기준에 따른 성취수준의 특성, 학습활동 참여도, 자기주도적 학습에 의한 변화와 성장 정도를 중심으로 기재합니다.<br><strong>[주의 사항]</strong> 방과후학교, 교내외 대회, 소논문(일부 탐구과목 제외), K-MOOC 등은 기재 불가합니다. (※ 1·2학년 공통과목은 1·2학기 합산 최대 500자)"
-            },
-            "개인별 세부능력 및 특기사항": {
-                limit: "500자 이내",
-                guideline: "<strong>[기재 요령]</strong> 특정 과목의 세특으로 한정하기 어려운 학교 자율적 교육활동, 학교 외 학습경험(당해 학기 미개설 과목) 등을 기재합니다.<br><strong>[주의 사항]</strong> 방과후학교, 각종 소논문, 교내외 대회 기재 금지 등 교과세특의 금지 사항이 동일하게 적용됩니다."
-            },
-            "행동특성 및 종합의견": {
-                limit: "300자 이내",
-                guideline: "<strong>[기재 요령]</strong> 학년 동안 지속적으로 관찰한 행동특성을 바탕으로 학생을 총체적으로 이해할 수 있는 종합의견을 문장으로 기재합니다.<br><strong>[주의 사항]</strong> 2026학년도 기준 최대 300자입니다. 단점을 입력하는 경우에는 변화 가능성과 함께 기재하는 것을 권장합니다."
-            },
-            "자율·자치활동": {
-                limit: "500자 이내",
-                guideline: "<strong>[기재 요령]</strong> 정규교육과정 및 학교교육계획에 의한 활동에서 드러나는 개별적인 행동 특성, 참여도, 협력도 등을 실제적인 역할 위주로 기재합니다.<br><strong>[주의 사항]</strong> 임원 활동 기재 시 구체적인 임원의 종류(전교/학년/학급)와 재임기간을 ( ) 안에 병기해야 합니다. (3학년은 자율활동으로 표기)"
-            },
-            "동아리활동": {
-                limit: "500자 이내",
-                guideline: "<strong>[기재 요령]</strong> 정규동아리에서 학생상호 평가, 교사 관찰 등을 통해 드러난 참여도, 협력도, 특별한 활동실적을 실제 역할 위주로 기재합니다.<br><strong>[주의 사항]</strong> 자율동아리는 학교교육계획에 따른 것만 학년당 1개(30자 이내 동아리 소개) 입력 가능하며 상급학교에 제공되지 않습니다."
-            },
-            "진로활동": {
-                limit: "500자 이내",
-                guideline: "<strong>[기재 요령]</strong> 진로희망분야, 진로 탐색을 위한 구체적인 노력과 활동, 진로상담 결과 등 학생의 진로 특성이 드러나는 사항을 기재합니다.<br><strong>[주의 사항]</strong> 학생의 진로희망분야 내용은 대입 등 상급학교 진학 시 전형 자료로 제공되지 않습니다."
-            },
-            "봉사활동": {
-                limit: "50자 이내",
-                guideline: "<strong>[기재 요령]</strong> 1~2학년은 창의적 체험활동 각 영역과 연계한 봉사활동의 특기사항을 해당 영역에 기재할 수 있습니다.<br><strong>[주의 사항]</strong> 단순 물품 및 현금 기부는 기재할 수 없습니다. 실적은 단편적 사실 위주로 기재하며 개인 봉사 실적은 대입에 제공되지 않습니다."
-            }
+        const keywords = {
+            competencyA: "창의력, 창의성, 비판적 사고력, 문제해결능력, 종합적 사고력, 대안적 사고, 수렴적 사고, 통합적 사고, 대인관계능력, 의사소통능력, 논리력, 분석력, 폭넓은 해석력, 체화, 대안제시능력, 발표력, 시간관리능력, 합리적인, 이성적인, 리더십, 논리정연함, 균형 잡힌 시각, 추론 및 추측 능력, 분석적 사고, 논리적 사고, 확장적 사고, 확산적 사고, 자기성찰능력, 상상력, 다양한 자료조사, 색다른 관점, 효율적 학습습관",
+            attitudeABC: "적극적, 자기주도적, 협력적, 단점 극복, 친절, 책임감, 꼼꼼함, 신중함, 능동적, 긍정적, 끈기, 인내심, 솔선수범, 윤리의식, 집중력, 희생, 배려, 묵묵히, 진지, 공손, 공감, 고민, 경청, 성숙, 의지력, 스스로 해결, 바람직한, 완벽, 극복, 흐트러짐 없는",
+            actionA: "탁월함, 뛰어남, 확장함, 성장함, 분석함, 추론함, 토론한, 발휘함, 인상적인, 고찰함, 본보기(모범)가 됨",
+            actionAB: "우수함, 풍부함, 제시함, 돋보임, 기여함, 조율함, 이끌어냄, 도모함, 비교함, 발표함, 설명함, 공유함, 분석함, 제언함, 밝힘, 토의함, 도출함",
+            actionABC: "하였음, 보였음, 보임, 깨달음, 정리함, 함양함, 좋음, 높음, 강함, 향상됨, 탐구함, 탐색함, 확인함, 신장함, 제출함, 키움, 알게 됨, 받음, 느낌, 진행함, 구축함, 앎, 소개함, 기울임, 기특함, 기여함, 확인함, 배움, 작성함, 학습함, 노력함, 나타냄, 극복함, 엿보임, 기름, 활동함"
         };
 
-        function updateCategoryInfo() {
-            const category = document.getElementById('record-category').value;
-            const data = categoryData[category];
-            document.getElementById('category-guideline').innerHTML = data.guideline;
-            const limitSelect = document.getElementById('char-limit');
-            limitSelect.value = data.limit;
-            document.getElementById('limit-warning').innerText = `(현재 항목 권장: ${data.limit})`;
+        // 모달 제어 함수
+        function openVerbModal() { document.getElementById('verb-modal').classList.remove('hidden'); }
+        function closeVerbModal() { document.getElementById('verb-modal').classList.add('hidden'); }
+        
+        function openGuideModal() { document.getElementById('guide-modal').classList.remove('hidden'); }
+        function closeGuideModal() { document.getElementById('guide-modal').classList.add('hidden'); }
 
-            const isSubjectRecord = category === "교과세부능력 및 특기사항" || category === "개인별 세부능력 및 특기사항";
-            for (let i = 1; i <= 5; i++) {
-                const achievementContainer = document.getElementById(`act-achievement-container-${i}`);
-                if (achievementContainer) {
-                    if (isSubjectRecord) {
-                        achievementContainer.classList.remove('hidden');
-                    } else {
-                        achievementContainer.classList.add('hidden');
-                    }
-                }
-            }
-        }
+        const categoryData = {
+            "교과세부능력 및 특기사항": { limit: "500자 이내", guideline: "<strong>[기재 요령]</strong> 과목별 성취기준에 따른 성취수준의 특성, 학습활동 참여도, 자기주도적 학습에 의한 변화와 성장 정도를 중심으로 기재합니다.<br><strong>[주의 사항]</strong> 방과후학교, 교내외 대회, 소논문(일부 탐구과목 제외), K-MOOC 등은 기재 불가합니다. (※ 1·2학년 공통과목은 1·2학기 합산 최대 500자)" },
+            "개인별 세부능력 및 특기사항": { limit: "500자 이내", guideline: "<strong>[기재 요령]</strong> 특정 과목의 세특으로 한정하기 어려운 학교 자율적 교육활동, 학교 외 학습경험(당해 학기 미개설 과목) 등을 기재합니다.<br><strong>[주의 사항]</strong> 방과후학교, 각종 소논문, 교내외 대회 기재 금지 등 교과세특의 금지 사항이 동일하게 적용됩니다." },
+            "행동특성 및 종합의견": { limit: "300자 이내", guideline: "<strong>[기재 요령]</strong> 학년 동안 지속적으로 관찰한 행동특성을 바탕으로 학생을 총체적으로 이해할 수 있는 종합의견을 문장으로 기재합니다.<br><strong>[주의 사항]</strong> 2026학년도 기준 최대 300자입니다. 단점을 입력하는 경우에는 변화 가능성과 함께 기재하는 것을 권장합니다." },
+            "자율·자치활동": { limit: "500자 이내", guideline: "<strong>[기재 요령]</strong> 정규교육과정 및 학교교육계획에 의한 활동에서 드러나는 개별적인 행동 특성, 참여도, 협력도 등을 실제적인 역할 위주로 기재합니다.<br><strong>[주의 사항]</strong> 임원 활동 기재 시 구체적인 임원의 종류(전교/학년/학급)와 재임기간을 ( ) 안에 병기해야 합니다. (3학년은 자율활동으로 표기)" },
+            "동아리활동": { limit: "500자 이내", guideline: "<strong>[기재 요령]</strong> 정규동아리에서 학생상호 평가, 교사 관찰 등을 통해 드러난 참여도, 협력도, 특별한 활동실적을 실제 역할 위주로 기재합니다.<br><strong>[주의 사항]</strong> 자율동아리는 학교교육계획에 따른 것만 학년당 1개(30자 이내 동아리 소개) 입력 가능하며 상급학교에 제공되지 않습니다." },
+            "진로활동": { limit: "500자 이내", guideline: "<strong>[기재 요령]</strong> 진로희망분야, 진로 탐색을 위한 구체적인 노력과 활동, 진로상담 결과 등 학생의 진로 특성이 드러나는 사항을 기재합니다.<br><strong>[주의 사항]</strong> 학생의 진로희망분야 내용은 대입 등 상급학교 진학 시 전형 자료로 제공되지 않습니다." },
+            "봉사활동": { limit: "50자 이내", guideline: "<strong>[기재 요령]</strong> 1~2학년은 창의적 체험활동 각 영역과 연계한 봉사활동의 특기사항을 해당 영역에 기재할 수 있습니다.<br><strong>[주의 사항]</strong> 단순 물품 및 현금 기부는 기재할 수 없습니다. 실적은 단편적 사실 위주로 기재하며 개인 봉사 실적은 대입에 제공되지 않습니다." }
+        };
 
         const evalElements = [
             {
                 title: "학업역량",
                 description: "대학 교육을 충실히 이수하는 데 필요한 수학 능력",
                 subElements: [
-                    { name: "학업성취도", questions: "- 고교 교육과정에서 이수한 교과의 성취수준이나 학업 발전의 정도\n- 기본 교과목 및 그 외 교과목의 교과 성적이 적절한가?\n- 학기별/학년별 성적 추이는 어떠한가?" },
-                    { name: "학업 태도", questions: "- 학업을 수행하고 학습해 나가려는 의지와 노력\n- 새로운 지식을 획득하기 위해 자기주도적으로 노력하고 있는가?\n- 교과 수업에 적극적으로 참여해 수업 내용을 이해하려는 태도와 열정이 있는가?" },
-                    { name: "탐구력", questions: "- 지적 호기심을 바탕으로 사물과 현상에 대해 탐구하고, 문제를 해결하려는 노력\n- 교내 활동에서 학문에 대한 열의와 지적 관심이 드러나고 있는가?\n- 교과와 각종 탐구활동에서 구체적인 성과를 보이고 있는가?" }
+                    { name: "학업성취도", questions: "- 고교 교육과정에서 이수한 교과의 성취수준이나 학업 발전의 정도\n- 기본 교과목 및 그 외 교과목의 교과 성적이 적절한가?" },
+                    { name: "학업 태도", questions: "- 학업을 수행하고 학습해 나가려는 의지와 노력\n- 교과 수업에 적극적으로 참여해 수업 내용을 이해하려는 태도와 열정이 있는가?" },
+                    { name: "탐구력", questions: "- 지적 호기심을 바탕으로 사물과 현상에 대해 탐구하고, 문제를 해결하려는 노력\n- 교과와 각종 탐구활동에서 구체적인 성과를 보이고 있는가?" }
                 ]
             },
             {
                 title: "진로역량",
                 description: "자신의 진로와 전공(계열)에 관한 탐색 노력과 준비 정도",
                 subElements: [
-                    { name: "전공(계열) 관련 교과 이수 노력", questions: "- 고교 교육과정에서 전공(계열)에 필요한 과목을 선택하여 이수한 정도\n- 전공(계열)과 관련된 과목을 적절하게 선택하고 추가적인 노력을 하였는가?\n- 선택과목은 교과목 학습단계에 따라 이수하였는가?" },
-                    { name: "전공(계열) 관련 교과 성취도", questions: "- 고교 교육과정에서 전공(계열)에 필요한 과목을 수강하고 취득한 학업 성취 수준\n- 전공(계열)과 관련된 과목의 성취 수준은 적절한가?" },
-                    { name: "진로 탐색 활동과 경험", questions: "- 자신의 진로를 탐색하는 과정에서 이루어진 활동이나 경험 및 노력 정도\n- 자신의 관심 분야나 흥미와 관련한 다양한 활동에 참여하여 노력한 경험이 있는가?" }
+                    { name: "전공(계열) 관련 교과 이수 노력", questions: "- 고교 교육과정에서 전공(계열)에 필요한 과목을 선택하여 이수한 정도" },
+                    { name: "전공(계열) 관련 교과 성취도", questions: "- 고교 교육과정에서 전공(계열)에 필요한 과목을 수강하고 취득한 학업 성취 수준" },
+                    { name: "진로 탐색 활동과 경험", questions: "- 자신의 진로를 탐색하는 과정에서 이루어진 활동이나 경험 및 노력 정도" }
                 ]
             },
             {
                 title: "공동체 역량",
                 description: "공동체의 일원으로서 갖춰야 할 바람직한 사고와 행동",
                 subElements: [
-                    { name: "협업과 소통 능력", questions: "- 공동체의 목표를 달성하기 위하여 협력하며, 합리적인 의사소통을 할 수 있는 능력\n- 타인의 의견에 공감하고 수용하는 태도를 보이며, 자신의 정보와 생각을 잘 전달하는가?" },
-                    { name: "나눔과 배려", questions: "- 상대방을 존중하고 타인을 위하여 기꺼이 나누어 주고자 하는 태도와 행동\n- 학교 생활 속에서 나눔을 실천하고 양보하거나 배려를 실천한 경험이 있는가?" },
-                    { name: "성실성과 규칙 준수", questions: "- 책임감을 바탕으로 의무를 다하고, 기본 윤리와 원칙을 준수하는 태도\n- 교내 활동에서 맡은 역할에 최선을 다하고 정한 규칙을 준수하고 있는가?" },
-                    { name: "리더십", questions: "- 공동체의 목표 달성을 위해 구성원들의 상호작용을 이끌어가는 능력\n- 구성원들의 인정과 신뢰를 바탕으로 참여를 이끌어내고 조율한 경험이 있는가?" }
+                    { name: "협업과 소통 능력", questions: "- 공동체의 목표를 달성하기 위하여 협력하며, 합리적인 의사소통을 할 수 있는 능력" },
+                    { name: "나눔과 배려", questions: "- 상대방을 존중하고 타인을 위하여 기꺼이 나누어 주고자 하는 태도와 행동" },
+                    { name: "성실성과 규칙 준수", questions: "- 책임감을 바탕으로 의무를 다하고, 기본 윤리와 원칙을 준수하는 태도" },
+                    { name: "리더십", questions: "- 공동체의 목표 달성을 위해 구성원들의 상호작용을 이끌어가는 능력" }
                 ]
             },
             {
                 title: "성장역량",
                 description: "현재의 상황이나 수준보다 질적으로 더 높은 단계로 향상 시킬 수 있는 능력",
                 subElements: [
-                    { name: "자기주도성", questions: "- 스스로 목표를 설정하고 계획을 수립하고 실행하는 성향\n- 설정한 목표를 이루기 위하여 자신을 돌아보고 개선하려는 의지가 있는가?" },
-                    { name: "창의적 문제해결력", questions: "- 창조적이고 논리적인 사고로 문제를 해결하는 능력\n- 학교생활에서 창의적인 발상을 통해 일을 진행하고 문제를 해결하려 노력하였는가?" },
-                    { name: "경험의 다양성", questions: "- 학교 교육의 다양한 영역에서 직접 겪거나 활동하면서 얻은 성장 과정 및 결과\n- 자율, 동아리, 진로활동 등 교내활동을 통해 융합적 소양과 다양한 경험을 쌓았는가?" }
+                    { name: "자기주도성", questions: "- 스스로 목표를 설정하고 계획을 수립하고 실행하는 성향" },
+                    { name: "창의적 문제해결력", questions: "- 창조적이고 논리적인 사고로 문제를 해결하는 능력" },
+                    { name: "경험의 다양성", questions: "- 학교 교육의 다양한 영역에서 직접 겪거나 활동하면서 얻은 성장 과정 및 결과" }
                 ]
             }
         ];
@@ -266,7 +385,6 @@
         function renderEvalElements() {
             const container = document.getElementById('eval-elements-container');
             let html = '';
-            
             evalElements.forEach((main, mainIdx) => {
                 html += `
                 <div class="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
@@ -276,7 +394,6 @@
                     </button>
                     <div id="eval-main-${mainIdx}" class="hidden px-5 py-4 space-y-5 bg-white border-t border-gray-100">
                 `;
-                
                 main.subElements.forEach((sub) => {
                     html += `
                         <div class="eval-sub-element border-l-4 border-indigo-400 pl-4 py-2" data-main="${main.title}" data-sub="${sub.name}">
@@ -288,7 +405,6 @@
                         </div>
                     `;
                 });
-                
                 html += `</div></div>`;
             });
             container.innerHTML = html;
@@ -297,7 +413,6 @@
         function renderActivities() {
             const container = document.getElementById('activities-container');
             let html = '';
-            
             for(let i=1; i<=5; i++) {
                 const isHidden = i > 1 ? 'hidden' : ''; 
                 const iconRotate = i > 1 ? '' : 'rotate-180';
@@ -315,8 +430,8 @@
                     </div>
                     <div id="activity-content-${i}" class="${isHidden} px-4 py-4 space-y-4 bg-white border-t border-gray-100 cursor-default" onclick="event.stopPropagation()">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">활동명</label>
-                            <input type="text" id="act-name-${i}" class="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm font-bold text-blue-900 bg-blue-50/30" placeholder="예: 빅데이터 활용 사례 발표, 독서 토론 등 (유지됨)">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">활동명 - 수행평가명</label>
+                            <input type="text" id="act-name-${i}" class="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm font-bold text-blue-900 bg-blue-50/30" placeholder="예: 빅데이터 활용 사례 발표 등 (유지됨)">
                         </div>
 
                         <div id="act-achievement-container-${i}" class="hidden bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-3">
@@ -325,19 +440,19 @@
                             
                             <div class="space-y-2">
                                 <div class="flex items-start gap-2">
-                                    <input type="radio" name="act-level-${i}" value="A" id="act-level-${i}-A" class="mt-2.5 cursor-pointer" checked>
+                                    <input type="radio" name="act-level-${i}" value="A" id="act-level-${i}-A" class="mt-2.5 cursor-pointer">
                                     <label for="act-level-${i}-A" class="shrink-0 font-bold text-blue-800 mt-1.5 w-4 text-center cursor-pointer">A</label>
-                                    <textarea id="act-achievement-A-${i}" rows="2" class="w-full px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white resize-none" placeholder="A등급 성취수준 내용"></textarea>
+                                    <textarea id="act-achievement-A-${i}" rows="1" class="w-full px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white resize-none" placeholder="A등급 성취수준 내용"></textarea>
                                 </div>
                                 <div class="flex items-start gap-2">
                                     <input type="radio" name="act-level-${i}" value="B" id="act-level-${i}-B" class="mt-2.5 cursor-pointer">
                                     <label for="act-level-${i}-B" class="shrink-0 font-bold text-blue-800 mt-1.5 w-4 text-center cursor-pointer">B</label>
-                                    <textarea id="act-achievement-B-${i}" rows="2" class="w-full px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white resize-none" placeholder="B등급 성취수준 내용"></textarea>
+                                    <textarea id="act-achievement-B-${i}" rows="1" class="w-full px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white resize-none" placeholder="B등급 성취수준 내용"></textarea>
                                 </div>
                                 <div class="flex items-start gap-2">
                                     <input type="radio" name="act-level-${i}" value="C" id="act-level-${i}-C" class="mt-2.5 cursor-pointer">
                                     <label for="act-level-${i}-C" class="shrink-0 font-bold text-blue-800 mt-1.5 w-4 text-center cursor-pointer">C</label>
-                                    <textarea id="act-achievement-C-${i}" rows="2" class="w-full px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white resize-none" placeholder="C등급 성취수준 내용"></textarea>
+                                    <textarea id="act-achievement-C-${i}" rows="1" class="w-full px-3 py-1.5 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white resize-none" placeholder="C등급 성취수준 내용"></textarea>
                                 </div>
                                 <div class="flex items-start gap-2">
                                     <input type="radio" name="act-level-${i}" value="D" id="act-level-${i}-D" class="mt-2.5 cursor-pointer">
@@ -350,38 +465,46 @@
                                     <textarea id="act-achievement-E-${i}" rows="1" class="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 outline-none text-sm bg-gray-50 resize-none" placeholder="E등급 성취수준 내용 (선택)"></textarea>
                                 </div>
                             </div>
-                            <p class="text-xs text-blue-700 mt-3">※ 학생의 성취도(A~E)를 라디오 버튼으로 체크하세요. <strong>체크된 등급의 성취수준만</strong> 프롬프트에 반영됩니다. (성취기준 입력은 필수 아님)</p>
+
+                            <div class="mt-4 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 flex items-start gap-2">
+                                <input type="checkbox" id="act-use-terms-${i}" class="mt-1 cursor-pointer" checked>
+                                <label for="act-use-terms-${i}" class="text-xs text-indigo-900 cursor-pointer leading-relaxed flex-grow">
+                                    <strong>💡 생기부 표현법 자동 반영 (A, B, C 한정)</strong><br>
+                                    체크 시 학생의 등급에 맞는 엑셀 키워드(탁월성, 활동표현)를 AI가 문맥에 맞게 골라서 녹여냅니다. (빈칸 입력 방지 적용)
+                                </label>
+                                <button type="button" onclick="openVerbModal()" class="shrink-0 bg-white border border-indigo-200 text-indigo-700 px-3 py-1.5 rounded-md text-xs font-bold hover:bg-indigo-50 transition shadow-sm">📑 서술어 사전 보기</button>
+                            </div>
                         </div>
                         
                         <div class="bg-gray-100 p-1 rounded-lg flex space-x-1 mb-2">
                             <button type="button" id="tab-detail-${i}" onclick="switchInputMode(${i}, 'detail')" class="flex-1 py-1.5 text-sm font-bold rounded-md bg-white shadow-sm text-blue-600 transition">상세 입력 모드</button>
-                            <button type="button" id="tab-integrated-${i}" onclick="switchInputMode(${i}, 'integrated')" class="flex-1 py-1.5 text-sm font-semibold rounded-md text-gray-500 hover:text-gray-700 transition">통합 입력 모드 (관찰+총평)</button>
+                            <button type="button" id="tab-integrated-${i}" onclick="switchInputMode(${i}, 'integrated')" class="flex-1 py-1.5 text-sm font-semibold rounded-md text-gray-500 hover:text-gray-700 transition">통합 입력 모드</button>
                         </div>
                         <input type="hidden" id="current-mode-${i}" value="detail">
 
                         <div id="mode-detail-${i}" class="space-y-4 animate-fade-in">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">탐구 주제</label>
-                                <input type="text" id="act-topic-${i}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm" placeholder="예: 빅데이터를 활용한 마케팅 전략 분석">
+                                <input type="text" id="act-topic-${i}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">학생이 탐구하게 된 계기나 지적 호기심</label>
-                                <textarea id="act-motivation-${i}" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none text-sm" placeholder="학생이 이 주제를 탐구하게 된 계기나 지적 호기심을 보인 부분을 적어주세요."></textarea>
+                                <textarea id="act-motivation-${i}" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition resize-none text-sm"></textarea>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">학생이 어떤 자료를 조사하고 어떤 활동을 수행했는지 관찰한 내용</label>
-                                <textarea id="act-process-${i}" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none text-sm" placeholder="학생이 어떤 자료를 조사하고 어떤 활동을 수행했는지 관찰한 내용을 구체적으로 적어주세요."></textarea>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">관찰된 과정 및 주요 내용</label>
+                                <textarea id="act-process-${i}" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition resize-none text-sm"></textarea>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">활동을 통해 학생이 보여준 성장 및 변화</label>
-                                <textarea id="act-result-${i}" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition resize-none text-sm" placeholder="활동을 통해 학생이 보여준 성장, 변화, 새롭게 알게 된 역량 등을 적어주세요."></textarea>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">결과 및 성장 (변화)</label>
+                                <textarea id="act-result-${i}" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition resize-none text-sm"></textarea>
                             </div>
                         </div>
 
                         <div id="mode-integrated-${i}" class="hidden space-y-4 animate-fade-in">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">학생 관찰 내용 및 교사 총평</label>
-                                <textarea id="act-integrated-${i}" rows="8" class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition resize-none text-sm leading-relaxed" placeholder="이 활동에서 학생이 보여준 구체적인 역할, 관찰된 우수성, 교사의 총평 등을 하나의 글로 이어서 편하게 적어주세요."></textarea>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">관찰 내용 및 총평 (전체적인 내용)</label>
+                                <textarea id="act-integrated-${i}" rows="8" class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition resize-none text-sm leading-relaxed"></textarea>
                             </div>
                         </div>
                     </div>
@@ -391,10 +514,27 @@
             container.innerHTML = html;
         }
 
+        function updateCategoryInfo() {
+            const category = document.getElementById('record-category').value;
+            const data = categoryData[category];
+            document.getElementById('category-guideline').innerHTML = data.guideline;
+            const limitSelect = document.getElementById('char-limit');
+            limitSelect.value = data.limit;
+            document.getElementById('limit-warning').innerText = `(현재 항목 권장: ${data.limit})`;
+
+            const isSubjectRecord = category === "교과세부능력 및 특기사항" || category === "개인별 세부능력 및 특기사항";
+            for (let i = 1; i <= 5; i++) {
+                const achievementContainer = document.getElementById(`act-achievement-container-${i}`);
+                if (achievementContainer) {
+                    if (isSubjectRecord) achievementContainer.classList.remove('hidden');
+                    else achievementContainer.classList.add('hidden');
+                }
+            }
+        }
+
         function switchInputMode(idx, mode) {
             const currentModeInput = document.getElementById(`current-mode-${idx}`);
             if (currentModeInput.value === mode) return;
-
             currentModeInput.value = mode;
             const tabDetail = document.getElementById(`tab-detail-${idx}`);
             const tabIntegrated = document.getElementById(`tab-integrated-${idx}`);
@@ -443,12 +583,10 @@
             fieldDiv.id = `custom-field-${customFieldCount}`;
             fieldDiv.innerHTML = `
                 <div class="flex-grow space-y-2">
-                    <input type="text" class="custom-title w-full px-3 py-1.5 border-b border-gray-300 focus:border-blue-500 outline-none text-sm font-semibold bg-transparent" placeholder="항목 이름 (예: 학생의 역할, 연계 도서 등)">
-                    <textarea class="custom-content w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none text-sm resize-none focus:ring-1 focus:ring-blue-500" rows="2" placeholder="해당 항목에 대한 학생의 활동 및 관찰 내용을 입력하세요"></textarea>
+                    <input type="text" class="custom-title w-full px-3 py-1.5 border-b border-gray-300 focus:border-blue-500 outline-none text-sm font-semibold bg-transparent" placeholder="항목 이름 (예: 역할, 도서 등)">
+                    <textarea class="custom-content w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md outline-none text-sm resize-none" rows="2"></textarea>
                 </div>
-                <button type="button" onclick="document.getElementById('custom-field-${customFieldCount}').remove()" class="text-red-400 hover:text-red-600 p-2" title="삭제">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                </button>
+                <button type="button" onclick="document.getElementById('custom-field-${customFieldCount}').remove()" class="text-red-400 hover:text-red-600 p-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
             `;
             container.appendChild(fieldDiv);
         }
@@ -467,68 +605,79 @@
             let activitiesText = "";
             for (let i = 1; i <= 5; i++) {
                 const name = document.getElementById(`act-name-${i}`).value.trim();
-                
-                const achievementContainer = document.getElementById(`act-achievement-container-${i}`);
-                let achievementData = "";
-                if (achievementContainer && !achievementContainer.classList.contains('hidden')) {
-                    const achTitle = document.getElementById(`act-achievement-${i}`).value.trim();
-                    const checkedRadio = document.querySelector(`input[name="act-level-${i}"]:checked`);
-                    let levelContent = "";
-                    let level = "";
-                    if (checkedRadio) {
-                        level = checkedRadio.value;
-                        levelContent = document.getElementById(`act-achievement-${level}-${i}`).value.trim();
-                    }
-                    if (achTitle || levelContent) {
-                        if (achTitle) achievementData += `- 관련 성취기준: ${achTitle}\n`;
-                        if (levelContent) achievementData += `- 학생의 성취수준 (${level}): ${levelContent}\n`;
-                    }
-                }
-
                 const mode = document.getElementById(`current-mode-${i}`).value;
                 
-                let hasContent = false;
-                let tempText = `\n[활동 ${i}]\n`;
-                if (name) tempText += `- 활동명: ${name}\n`;
-                if (achievementData) tempText += achievementData;
+                let hasTextContent = false;
+                let textFields = [];
                 
                 if (mode === 'detail') {
                     const topic = document.getElementById(`act-topic-${i}`).value.trim();
                     const motivation = document.getElementById(`act-motivation-${i}`).value.trim();
                     const process = document.getElementById(`act-process-${i}`).value.trim();
                     const result = document.getElementById(`act-result-${i}`).value.trim();
-                    
-                    if (topic || motivation || process || result || name || achievementData) {
-                        hasContent = true;
-                        if (topic) tempText += `- 탐구 주제: ${topic}\n`;
-                        if (motivation) tempText += `- 학생이 탐구하게 된 계기나 지적 호기심: ${motivation}\n`;
-                        if (process) tempText += `- 관찰된 탐구 과정 및 주요 내용: ${process}\n`;
-                        if (result) tempText += `- 결과 및 관찰된 학생의 성장: ${result}\n`;
-                    }
+                    textFields = [topic, motivation, process, result];
                 } else {
                     const integrated = document.getElementById(`act-integrated-${i}`).value.trim();
-                    if (integrated || name || achievementData) {
-                        hasContent = true;
-                        if (integrated) tempText += `- 관찰 내용 및 총평:\n  ${integrated}\n`;
-                    }
+                    textFields = [integrated];
                 }
-                
-                if (hasContent) {
+
+                if (textFields.some(text => text !== "")) {
+                    hasTextContent = true;
+                }
+
+                if (hasTextContent) {
+                    let tempText = `\n[활동 ${i}]\n`;
+                    if (name) tempText += `- 활동명(수행평가명): ${name}\n`;
+
+                    const achievementContainer = document.getElementById(`act-achievement-container-${i}`);
+                    if (achievementContainer && !achievementContainer.classList.contains('hidden')) {
+                        const achTitle = document.getElementById(`act-achievement-${i}`).value.trim();
+                        const checkedRadio = document.querySelector(`input[name="act-level-${i}"]:checked`);
+                        let level = "";
+                        
+                        if (checkedRadio) {
+                            level = checkedRadio.value;
+                            const levelContent = document.getElementById(`act-achievement-${level}-${i}`).value.trim();
+                            if (achTitle) tempText += `- 관련 성취기준: ${achTitle}\n`;
+                            if (levelContent) tempText += `- 학생의 성취수준 (${level}): ${levelContent}\n`;
+                            
+                            let useTerms = document.getElementById(`act-use-terms-${i}`)?.checked;
+                            if (useTerms && (level === 'A' || level === 'B' || level === 'C')) {
+                                let injectedTerms = "";
+                                if (level === 'A') {
+                                    injectedTerms = `[학업역량: ${keywords.competencyA}], [학업태도: ${keywords.attitudeABC}], [활동표현: ${keywords.actionA}, ${keywords.actionAB}, ${keywords.actionABC}]`;
+                                } else if (level === 'B') {
+                                    injectedTerms = `[학업태도: ${keywords.attitudeABC}], [활동표현: ${keywords.actionAB}, ${keywords.actionABC}]`;
+                                } else if (level === 'C') {
+                                    injectedTerms = `[학업태도: ${keywords.attitudeABC}], [활동표현: ${keywords.actionABC}]`;
+                                }
+                                tempText += `- 💡 생기부 표현법 반영 지시: 학생의 성취도(${level})에 맞춰 다음 제공된 키워드 리스트 중 문맥에 자연스럽게 어울리는 단어들을 선별하여 문장을 구성해 주세요. (단, 억지로 무리하게 끼워 넣지는 말 것) -> 제공 키워드: ${injectedTerms}\n`;
+                            }
+                        } else {
+                            if (achTitle) tempText += `- 관련 성취기준: ${achTitle}\n`;
+                        }
+                    }
+
+                    if (mode === 'detail') {
+                        if (textFields[0]) tempText += `- 탐구 주제: ${textFields[0]}\n`;
+                        if (textFields[1]) tempText += `- 탐구 계기/지적 호기심: ${textFields[1]}\n`;
+                        if (textFields[2]) tempText += `- 관찰된 과정/주요 내용: ${textFields[2]}\n`;
+                        if (textFields[3]) tempText += `- 결과 및 학생의 성장: ${textFields[3]}\n`;
+                    } else {
+                        if (textFields[0]) tempText += `- 관찰 내용 및 총평:\n  ${textFields[0]}\n`;
+                    }
                     activitiesText += tempText;
                 }
             }
 
-            if (!activitiesText) {
-                activitiesText = "- (입력된 세부 활동 내용이 없습니다.)\n";
-            }
+            if (!activitiesText) activitiesText = "- (입력된 세부 활동 내용이 없습니다.)\n";
             
             const overallEval = document.getElementById('overall-evaluation').value.trim();
             const charLimit = document.getElementById('char-limit').value;
             const tone = document.getElementById('tone').value;
 
             let evalText = "";
-            const evalElementsDOM = document.querySelectorAll('.eval-sub-element');
-            evalElementsDOM.forEach(el => {
+            document.querySelectorAll('.eval-sub-element').forEach(el => {
                 const content = el.querySelector('.eval-combined').value.trim();
                 if (content !== "") {
                     const mainTitle = el.getAttribute('data-main');
@@ -552,12 +701,12 @@
 [작성 조건]
 1. 분량: ${charLimit}로 작성해 주세요. (해당 항목의 법정 제한 글자수를 엄수하세요)
 2. 어조: ${tone} 문체로 작성해 주세요. 문장 끝맺음은 '~함', '~음'으로 간결하게 작성하고, 이전에 작성한 내용과 중복되지 않도록 다양한 어휘를 사용하세요.
-3. 내용: 학생이 구체적으로 어떤 능력을 보였고 어떻게 성장했는지 사실 기반으로 작성하세요. 미사여구는 배제하세요.
+3. 내용: 학생이 구체적으로 어떤 능력을 보였고 어떻게 성장했는지 추상적인 표현보다는 사실 기반으로 작성해 주세요. 미사여구는 배제하세요.
 4. 중복 방지: 매번 새롭고 다양한 어휘를 사용하세요.
-5. 사실 기반 엄수(환각 방지): 반드시 제공된 정보만을 바탕으로 작성하세요. 교사가 입력하지 않은 사실(없는 활동 내역, 성과, 감정 등)을 AI가 임의로 상상하여 지어내거나 꾸며 쓰지 마세요.
-6. 성취기준 및 성취수준 연계: 각 활동별로 제공된 '관련 성취기준' 및 선택된 '성취수준'을 학생의 구체적인 활동 사례와 자연스럽게 연결될 경우에만 반영하고, 억지로 꿰맞추지 마세요.
+5. 사실 기반 엄수(환각 방지): 교사가 제공한 정보만을 바탕으로 작성하세요. 없는 사실을 지어내지 마세요.
+6. 성취기준 연계: 각 활동별로 성취기준/성취수준이 있는 경우, 활동 사례와 자연스럽게 연결될 경우에만 반영하고 억지로 꿰맞추지 마세요.
 
-[현재 작성 중인 '${category}' 항목의 2026학년도 기재 요령 및 주의사항]
+[현재 작성 중인 '${category}' 항목의 2026학년도 기재 요령]
 - ${currentGuideline}
 
 [🚨 절대 기재 금지 사항 (2026학년도 교육부 기재요령 준수)]
@@ -582,21 +731,17 @@
 - 희망 진로: ${career || '입력되지 않음'}
 ${activitiesText}`;
 
-            if (evalText !== "") {
-                promptText += `\n[학생부종합전형 평가 요소별 관찰 사례 및 교사 총평]\n학생의 활동 중 아래 평가 요소에 해당하는 사례와 교사 총평을 특별히 강조하여 세특에 자연스럽게 녹여주세요.${evalText}\n`;
-            }
-            if (customFieldsText !== "") {
-                promptText += `\n[추가 활동 정보]\n${customFieldsText}`;
-            }
-            if (overallEval) {
-                promptText += `\n[교사 종합 총평]\n- ${overallEval}\n`;
-            }
+            if (evalText !== "") promptText += `\n[학생부종합전형 평가 요소별 관찰 사례 및 교사 총평]\n${evalText}\n`;
+            if (customFieldsText !== "") promptText += `\n[추가 활동 정보]\n${customFieldsText}`;
+            if (overallEval) promptText += `\n[교사 종합 총평]\n- ${overallEval}\n`;
+            
             if (teacherStyle) {
                 promptText += `\n[👩‍🏫 교사 고유의 작성 스타일 (문체 참고)]
 아래 문장들의 어휘 선택, 문장의 길이와 호흡, 특히 서술 방식과 종결 어미를 철저하게 분석하고 흉내 내어, 위에서 요청한 내용들을 이와 매우 유사한 톤 앤 매너로 작성해 주세요.
 - 기존 작성 문장: ${teacherStyle}\n`;
             }
-            promptText += `\n위 내용을 바탕으로 학생의 역량이 잘 드러나도록 2026년도 학교생활기록부 기재 요령에 완벽히 부합하는 '${category}' 항목의 완성된 글을 출력해 주세요.`;
+            
+            promptText += `\n위 내용을 바탕으로 2026년도 학교생활기록부 기재 요령에 부합하는 '${category}' 항목의 완성된 글을 출력해 주세요.`;
 
             const finalPromptEl = document.getElementById('final-prompt');
             finalPromptEl.value = promptText;
